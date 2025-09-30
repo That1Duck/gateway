@@ -1,0 +1,15 @@
+# Virtual environments
+.venv/
+env/
+venv/
+
+# PyCharm
+.idea/
+
+# Logs
+*.log
+
+# Python cache
+__pycache__/
+**/__pycache__/
+*.py[cod]
