@@ -10,6 +10,14 @@ from .middlewares.request_id import RequestIDMiddleware
 from .schemas.common import ErrorResponse, ErrorDetail
 from .api.v1.routes import api_router
 
+# db
+from .db.session import engine
+from .db.base import Base
+from .models.user import User
+
+# db connection
+Base.metadata.create_all(bind=engine)
+
 setup_logging()
 app = FastAPI(title=settings.APP_NAME, version= settings.APP_VERSION)
 

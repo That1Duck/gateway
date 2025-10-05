@@ -48,9 +48,6 @@ def set_auth_cookies(response: Response, access:str, refresh: Optional[str] = No
             kwargs["domain"] = settings.COOKIE_DOMAIN
         response.set_cookie(key = cookie_name, value=value, **kwargs)
 
-        print("DEBUG Set-Cookie header now:",
-              response.headers.get("set-cookie"))
-
     _set(settings.ACCESS_COOKIE_NAME, access, settings.ACCESS_TOKEN_TTL_MIN * 60)
     if refresh:
         _set(settings.REFRESH_COOKIE_NAME, refresh, settings.REFRESH_TOKEN_TTL_DAYS * 24 *3600)

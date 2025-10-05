@@ -31,6 +31,8 @@ class Settings(BaseSettings):
     ACCESS_COOKIE_NAME: str = "access_token"
     REFRESH_COOKIE_NAME: str = "refresh_token"
 
+    DB_URL: str =  "sqlite:///./data/app.db"
+
 
     @property
     def cors_origins_list(self) -> List[str]:
