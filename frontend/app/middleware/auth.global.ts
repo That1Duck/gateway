@@ -1,14 +1,19 @@
-// app/middleware/auth.global.ts
 import { useAuth } from '@/lib/useAuth'
 
+const PUBLIC_ROUTES = ['/login', '/register']
+
 export default defineNuxtRouteMiddleware((to) => {
-  // Не выполняем редиректы на сервере — это часто даёт 500
   if (import.meta.server) return
 
   const { isAuthenticated } = useAuth()
-  const publicRoutes = ['/login', '/register']
 
-  if (!isAuthenticated.value && !publicRoutes.includes(to.path)) {
+  // если уже залогинен — не даём попасть на /login и /register
+  if (isAuthenticated.value && PUBLIC_ROUTES.includes(to.path)) {
+    return navigateTo('/')
+  }
+
+  // если не залогинен — защищаем все, кроме публичных
+  if (!isAuthenticated.value && !PUBLIC_ROUTES.includes(to.path)) {
     return navigateTo('/login')
   }
 })

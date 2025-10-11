@@ -1,26 +1,24 @@
 // nuxt.config.ts
 export default defineNuxtConfig({
     modules: ['@nuxtjs/tailwindcss', 'shadcn-nuxt'],
+    css: ['@@/assets/css/tailwind.css'],
     tailwindcss: {
-        cssPath: '@/assets/css/tailwind.css', // or '~assets/css/tailwind.css'
+        cssPath: '@@/assets/css/tailwind.css', // or '~assets/css/tailwind.css'
         viewer: false
     },
-    postcss: { plugins: { '@tailwindcss/postcss': {} } },
     runtimeConfig: {
-        public: {
-            apiBase: '/api'
-        },
-        apiOrigin: 'http://127.0.0.1:8000',
+        public: {apiBase: '/api/api/v1'},
+        apiOrigin: 'http://localhost:8000',
     },
-    nitro: {
-        compatibilityDate: '2025-10-09',
-        devProxy: {
-            '/api': { target: 'http://127.0.0.1:8000', changeOrigin: true },
-        },
-        routeRules: {
-            '/api/**': { proxy: 'http://127.0.0.1:8000/**' },
-        },
-    },
+//     nitro: {
+//         devProxy: {
+//             '/api': { target: 'http://127.0.0.1:8000', changeOrigin: true },
+//         },
+//         routeRules: {
+//             '/api/**': { proxy: 'http://127.0.0.1:8000/**' },
+//         },
+//     },
+    compatibilityDate: '2025-10-09',
     shadcn: {
        prefix: '',
        componentDir: 'app/components/ui',

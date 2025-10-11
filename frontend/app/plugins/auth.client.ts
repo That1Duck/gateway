@@ -2,5 +2,9 @@ import { useAuth } from '@/lib/useAuth'
 
 export default defineNuxtPlugin(async () => {
   const { fetchMe } = useAuth()
-  await fetchMe()
+  try {
+    await fetchMe()
+  } catch {
+    /* пользователь может быть не залогинен — ок */
+  }
 })

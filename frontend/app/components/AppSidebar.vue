@@ -9,7 +9,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar'
-import { Home, Inbox, Settings, LogOut, LogIn } from 'lucide-vue-next'
+import { Home, Settings, LogOut, LogIn } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/useAuth'
 
@@ -17,16 +17,24 @@ const { user, isAuthenticated, logout } = useAuth()
 
 const items = [
   { title: 'Home', url: '/', icon: Home },
-  { title: 'Inbox', url: '/inbox', icon: Inbox },
-  { title: 'Settings', url: '/settings', icon: Settings },
+  { title: 'Settings', url: '/login', icon: Settings }, // временно, пока нет собственной страницы
 ]
+
+// логаут с редиректом на /login
+async function onLogout() {
+  try {
+    await logout()
+  } finally {
+    navigateTo('/login')
+  }
+}
 </script>
 
 <template>
-  <!-- collapsible sidebar -->
-  <Sidebar collapsible="icon" class="border-r">
+  <!-- offcanvas: не занимает ширину, чат будет на всю страницу -->
+  <Sidebar collapsible="offcanvas" class="border-r">
     <SidebarContent class="flex flex-col justify-between h-full">
-      <!-- верхняя часть -->
+      <!-- верх: навигация -->
       <div>
         <SidebarGroup>
           <SidebarGroupLabel>General</SidebarGroupLabel>
@@ -45,7 +53,7 @@ const items = [
         </SidebarGroup>
       </div>
 
-      <!-- нижняя часть: логин / логаут -->
+      <!-- низ: auth-блок (только на клиенте) -->
       <div class="p-2 border-t">
         <ClientOnly>
           <template #default>
@@ -53,11 +61,7 @@ const items = [
               <p class="text-sm truncate mb-2">
                 👋 {{ user?.full_name || user?.email }}
               </p>
-              <Button
-                variant="outline"
-                class="w-full justify-start"
-                @click="logout"
-              >
+              <Button variant="outline" class="w-full justify-start" @click="onLogout">
                 <LogOut class="h-4 w-4 mr-2" /> Logout
               </Button>
             </template>
@@ -71,7 +75,7 @@ const items = [
             </template>
           </template>
 
-          <!-- отображается на SSR, пока гидрируется -->
+          <!-- skeleton на SSR -->
           <template #fallback>
             <div class="h-9 w-full animate-pulse rounded-md bg-muted" />
           </template>

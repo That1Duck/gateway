@@ -3,58 +3,63 @@ import { ofetch } from 'ofetch'
 import { useRuntimeConfig, useRequestHeaders } from '#app'
 
 let isRefreshing = false
-let pending: Array<() => void> = []
+let waiters: Array<() => void> = []
 
 export function createApi() {
   const config = useRuntimeConfig()
 
-  // На клиенте используем прокси '/api'
-  const clientBase = config.public.apiBase || '/api'
+  // КЛИЕНТ → через Nuxt-прокси (мы настроили /api/api/v1 в nuxt.config.ts)
+  const clientBase = config.public.apiBase || '/api/api/v1'
 
-  // На сервере БЕЗ прокси идём прямо на FastAPI
-  // Можно вынести в ENV: NUXT_PRIVATE_API_ORIGIN=http://127.0.0.1:8000
-  const serverBase =
-    (config as any).private?.apiOrigin ||
+  // СЕРВЕР (SSR) → прямой адрес бэка с префиксом /api/v1
+  const origin =
+    (config as any).apiOrigin ||
     process.env.NUXT_PRIVATE_API_ORIGIN ||
-    'http://127.0.0.1:8000'
+    'http://localhost:8000'
+  const serverBase = `${origin}/api/v1`
 
   const baseURL = import.meta.server ? serverBase : clientBase
 
-  const common: any = {
+  const api = ofetch.create({
     baseURL,
     credentials: 'include',
-  }
 
-  // На сервере пробрасываем Cookie пользователя к бэку
-  if (import.meta.server) {
-    common.headers = {
-      ...useRequestHeaders(['cookie']),
-    }
-  }
+    // На сервере пробрасываем куки клиента к бэку
+    headers: import.meta.server ? { ...useRequestHeaders(['cookie']) } : undefined,
 
-  const api = ofetch.create(common)
+    // ↓↓↓ ХУКИ передаются здесь, а не через api.onRequest(...)
+    onRequest({ request, options }) {
+      // Удобный лог для диагностики — можно убрать после проверки
+      // console.log('[API]', options.method || 'GET', String(baseURL) + String(request))
+    },
 
-  // Глобальный авто-refresh по 401
-  api.onResponseError(async (error) => {
-    const { response, request } = error
-    if (response?.status !== 401) throw error
+    async onResponseError({ response, request, options }) {
+      if (response?.status !== 401) return
 
-    if (!isRefreshing) {
-      isRefreshing = true
-      try {
-        await api('/auth/refresh', { method: 'POST' })
-        pending.forEach((resume) => resume())
-        pending = []
-      } catch (e) {
-        pending = []
-        throw e
-      } finally {
-        isRefreshing = false
+      // один общий refresh для параллельных запросов
+      if (!isRefreshing) {
+        isRefreshing = true
+        try {
+          await ofetch('/auth/refresh', {
+            baseURL,
+            method: 'POST',
+            credentials: 'include',
+            headers: import.meta.server ? { ...useRequestHeaders(['cookie']) } : undefined,
+          })
+          waiters.forEach((r) => r())
+          waiters = []
+        } catch (e) {
+          waiters = []
+          throw e
+        } finally {
+          isRefreshing = false
+        }
       }
-    }
 
-    await new Promise<void>((resolve) => pending.push(resolve))
-    return api(request)
+      await new Promise<void>((resolve) => waiters.push(resolve))
+      // повторяем исходный запрос
+      return ofetch(request as string, { ...options, baseURL })
+    },
   })
 
   return api
