@@ -10,16 +10,15 @@ from .middlewares.request_id import RequestIDMiddleware
 from .schemas.common import ErrorResponse, ErrorDetail
 from .api.v1.routes import api_router
 
-# db
+# DB
 from .db.session import engine
 from .db.base import Base
-from .models.user import User
 
 # db connection
 Base.metadata.create_all(bind=engine)
 
 setup_logging()
-app = FastAPI(title=settings.APP_NAME, version= settings.APP_VERSION)
+app = FastAPI(title=settings.APP_NAME, version=settings.APP_VERSION)
 
 # middleware
 app.add_middleware(RequestIDMiddleware)
@@ -34,13 +33,13 @@ def root_health():
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     rid = getattr(request.state, "request_id", None)
     body = ErrorResponse(
-        error=ErrorDetail(code = str(exc.status_code), message=exc.detail),
-        request_id=rid
+        error=ErrorDetail(code=str(exc.status_code), message=exc.detail),
+        request_id=rid,
     )
-    return  JSONResponse(status_code=exc.status_code, content= body.model_dump())
+    return JSONResponse(status_code=exc.status_code, content=body.model_dump())
 
 @app.exception_handler(RequestValidationError)
-async  def validation_exceptiom_handler(request: Request, exc:  RequestValidationError):
+async def validation_exceptiom_handler(request: Request, exc: RequestValidationError):
     rid = getattr(request.state, "request_id", None)
     body = ErrorResponse(
         error=ErrorDetail(code="422", message="Validation error", ctx={"errors": exc.errors()}),
@@ -48,11 +47,9 @@ async  def validation_exceptiom_handler(request: Request, exc:  RequestValidatio
     )
     return JSONResponse(status_code=422, content=body.model_dump())
 
-
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
     rid = getattr(request.state, "request_id", None)
-    # Логувати можна тут (loguru), але не шумимо у відповіді
     body = ErrorResponse(
         error=ErrorDetail(code="500", message="Internal Server Error"),
         request_id=rid,

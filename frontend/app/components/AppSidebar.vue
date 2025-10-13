@@ -9,18 +9,18 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar'
-import { Home, Settings, LogOut, LogIn } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
+import { Home, Settings, LogOut, LogIn } from 'lucide-vue-next'
 import { useAuth } from '@/lib/useAuth'
+import AppProjectTree from '@/components/AppProjectTree.vue'
 
 const { user, isAuthenticated, logout } = useAuth()
 
 const items = [
   { title: 'Home', url: '/', icon: Home },
-  { title: 'Settings', url: '/login', icon: Settings }, // временно, пока нет собственной страницы
+  { title: 'Settings', url: '/login', icon: Settings }, // временно
 ]
 
-// логаут с редиректом на /login
 async function onLogout() {
   try {
     await logout()
@@ -31,11 +31,12 @@ async function onLogout() {
 </script>
 
 <template>
-  <!-- offcanvas: не занимает ширину, чат будет на всю страницу -->
+  <!-- offcanvas: выезжает поверх, не занимает ширину -->
   <Sidebar collapsible="offcanvas" class="border-r">
     <SidebarContent class="flex flex-col justify-between h-full">
-      <!-- верх: навигация -->
-      <div>
+
+      <!-- верх: базовое меню + дерево проектов/чатов -->
+      <div class="space-y-2">
         <SidebarGroup>
           <SidebarGroupLabel>General</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -43,7 +44,7 @@ async function onLogout() {
               <SidebarMenuItem v-for="item in items" :key="item.title">
                 <SidebarMenuButton asChild>
                   <NuxtLink :to="item.url">
-                    <component :is="item.icon" />
+                    <component :is="item.icon" class="h-4 w-4" />
                     <span>{{ item.title }}</span>
                   </NuxtLink>
                 </SidebarMenuButton>
@@ -51,9 +52,12 @@ async function onLogout() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        <!-- дерево: Unassigned / Projects / Trash -->
+        <AppProjectTree />
       </div>
 
-      <!-- низ: auth-блок (только на клиенте) -->
+      <!-- низ: auth-блок -->
       <div class="p-2 border-t">
         <ClientOnly>
           <template #default>
@@ -75,12 +79,12 @@ async function onLogout() {
             </template>
           </template>
 
-          <!-- skeleton на SSR -->
           <template #fallback>
             <div class="h-9 w-full animate-pulse rounded-md bg-muted" />
           </template>
         </ClientOnly>
       </div>
+
     </SidebarContent>
   </Sidebar>
 </template>

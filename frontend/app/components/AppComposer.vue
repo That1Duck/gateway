@@ -10,12 +10,27 @@ const { sendUser, replyWith } = useChat()
 const text = ref('')
 const el = ref<HTMLTextAreaElement | null>(null)
 
-function onSend() {
-  if (!text.value.trim()) return
-  sendUser(text.value)
-  text.value = ''
-  replyWith()
-  nextTick(() => el.value?.focus())
+async function onSend() {
+  const t = text.value.trim()
+  if (!t) return
+
+  try {
+    // 1️⃣ сохраняем сообщение пользователя
+    await sendUser(t)
+
+    // 2️⃣ очищаем поле и пытаемся вернуть фокус
+    text.value = ''
+    await nextTick()
+    if (el.value && typeof (el.value as any).focus === 'function') {
+      (el.value as any).focus()
+    }
+
+    // 3️⃣ просим ассистента ответить
+    await replyWith()
+  } catch (e: any) {
+    console.error('[Composer] send error', e)
+    alert('Failed to send message: ' + (e?.data?.detail || e?.message || 'unknown'))
+  }
 }
 
 const suggestions = [
@@ -29,8 +44,8 @@ function useSuggestion(s: string) {
 </script>
 
 <template>
-  <div class="border-t bg-background p-3 w-full">
-    <div class="flex w-full items-end gap-2">
+  <div class="border-t bg-background p-3">
+    <div class="w-full flex items-end gap-2 px-4">
       <Popover>
         <PopoverTrigger as-child>
           <Button variant="outline" class="shrink-0" title="Prompt ideas">
@@ -51,11 +66,12 @@ function useSuggestion(s: string) {
         </PopoverContent>
       </Popover>
 
+      <!-- ref теперь точно висит на Textarea -->
       <Textarea
         ref="el"
         v-model="text"
         placeholder="Message your assistant…"
-        class="flex-1 min-h-12 h-12 max-h-40 resize-y"
+        class="min-h-12 h-12 max-h-40 resize-y flex-1"
         @keydown.enter.exact.prevent="onSend"
       />
 

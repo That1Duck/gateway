@@ -8,6 +8,7 @@ import { useChat } from '@/lib/useChat'
 
 const { messages, loading } = useChat()
 
+// scrolling viewport
 const viewport = ref<HTMLDivElement | null>(null)
 const stickToBottom = ref(true)
 
@@ -22,14 +23,10 @@ function scrollToBottom(smooth = true) {
 
 watch(
   () => messages.value.length,
-  () => {
-    if (stickToBottom.value) scrollToBottom(true)
-  }
+  () => { if (stickToBottom.value) scrollToBottom(true) }
 )
 
-onMounted(() => {
-  scrollToBottom(false)
-})
+onMounted(() => { scrollToBottom(false) })
 
 function onScroll() {
   const el = viewport.value
@@ -39,14 +36,14 @@ function onScroll() {
 </script>
 
 <template>
-  <!-- владеет скроллом и занимает всю ширину -->
-  <div class="relative flex-1 w-full overflow-hidden bg-background">
+  <!-- owns the scroll; fills remaining height -->
+  <div class="relative flex-1 overflow-hidden bg-background">
     <div
       ref="viewport"
-      class="h-full w-full overflow-y-auto pt-4 pb-24"
+      class="h-full overflow-y-auto px-4 pt-4 pb-20"
       @scroll="onScroll"
     >
-      <div class="w-full space-y-4 px-6">
+      <div class="w-full space-y-4">
         <template v-for="m in messages" :key="m.id">
           <div
             class="flex gap-3 items-start"
@@ -57,8 +54,9 @@ function onScroll() {
               <AvatarFallback>AI</AvatarFallback>
             </Avatar>
 
-            <Card class="px-3 py-2 max-w-[80%]">
-              <p>{{ m.text }}</p>
+            <Card class="px-3 py-2 max-w-[80%] text-left">
+              <!-- ВАЖНО: content, не text; + переносы строк -->
+              <p class="whitespace-pre-wrap break-words">{{ m.content }}</p>
             </Card>
 
             <Avatar v-if="m.role === 'user'">
@@ -77,7 +75,7 @@ function onScroll() {
       </div>
     </div>
 
-    <!-- кнопка "вниз" -->
+    <!-- floating "jump to bottom" button -->
     <button
       v-if="!stickToBottom"
       class="absolute bottom-24 right-6 rounded-full border px-3 py-1 text-sm bg-background shadow"

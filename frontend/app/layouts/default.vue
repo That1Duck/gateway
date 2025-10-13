@@ -4,11 +4,11 @@ import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/s
 </script>
 
 <template>
-  <!-- закрыт по умолчанию; не занимает ширину -->
+  <!-- закрыт по умолчанию; сайдбар не забирает ширину -->
   <SidebarProvider :defaultOpen="false">
     <AppSidebar />
 
-    <!-- ВАЖНО: оборачиваем весь контент в SidebarInset -->
+    <!-- ВАЖНО: весь основной контент внутри SidebarInset -->
     <SidebarInset>
       <div class="h-screen flex flex-col overflow-hidden">
         <header class="shrink-0 sticky top-0 border-b bg-background/70 backdrop-blur p-2 flex items-center gap-2 z-10">
@@ -16,7 +16,6 @@ import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/s
           <h1 class="font-medium">PyFastRun</h1>
         </header>
 
-        <!-- Чатовая страница сама рендерит AppChat и AppComposer -->
         <main class="flex-1 flex flex-col overflow-hidden">
           <NuxtPage />
         </main>

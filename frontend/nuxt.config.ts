@@ -10,14 +10,14 @@ export default defineNuxtConfig({
         public: {apiBase: '/api/api/v1'},
         apiOrigin: 'http://localhost:8000',
     },
-//     nitro: {
-//         devProxy: {
-//             '/api': { target: 'http://127.0.0.1:8000', changeOrigin: true },
-//         },
-//         routeRules: {
-//             '/api/**': { proxy: 'http://127.0.0.1:8000/**' },
-//         },
-//     },
+    nitro: {
+        devProxy: {
+            '/api': { target: 'http://localhost:8000', changeOrigin: true },
+        },
+        routeRules: {
+            '/api/**': { proxy: 'http://localhost:8000/**' },
+        },
+    },
     compatibilityDate: '2025-10-09',
     shadcn: {
        prefix: '',
