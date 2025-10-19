@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
@@ -33,6 +33,7 @@ class Settings(BaseSettings):
 
     DB_URL: str =  "sqlite:///./data/app.db"
 
+    GOOGLE_API_KEY: Optional[str] = None
 
     @property
     def cors_origins_list(self) -> List[str]:

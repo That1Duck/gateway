@@ -12,10 +12,10 @@ from ...schemas.chat import (
     MessageIn, MessageOut,
     CompletionIn, CompletionOut,
 )
-from ...services.llm_service import LLMService
+from ...services.llm_facade import LLMFacade
 from ...deps import current_user
 
-llm = LLMService()
+_llm = LLMFacade()
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Вспомогательные проверки доступа
@@ -140,6 +140,16 @@ def delete_project(
     for c in chats:
         db.delete(c)
     p = db.query(Project).filter(Project.id == project_id).first()
+    db.delete(p)
+    db.commit()
+    return
+
+@router.delete("/{project_id}/hard", status_code=status.HTTP_204_NO_CONTENT)
+def delete_project_hard(project_id: int, db: Session = Depends(get_db), user=Depends(current_user)):
+    p = _get_user_project_or_404(db, user, project_id)
+    chats = db.query(Chat).filter(Chat.project_id == project_id).all()
+    for c in chats:
+        db.delete(c)   # сообщения уйдут каскадом
     db.delete(p)
     db.commit()
     return
@@ -336,7 +346,7 @@ def completion(
     _get_user_chat_or_404(db, user, chat_id)
 
     # Заглушка: ответ строится на основе последнего user-сообщения
-    text = llm.complete(
+    text = _llm.complete(
         [m.model_dump() for m in body.messages],
         model=body.model,
         settings=body.settings,
@@ -352,3 +362,18 @@ def completion(
     db.commit()
     db.refresh(msg)
     return {"message": msg}
+
+@chats.delete("/trash", status_code=status.HTTP_204_NO_CONTENT)
+def empty_trash(db: Session = Depends(get_db), user=Depends(current_user)):
+    q = (
+        db.query(Chat)
+        .outerjoin(Project, Project.id == Chat.project_id)
+        .filter(Chat.deleted_at.is_not(None))
+        .filter(
+            (Project.user_id == user.id) | ((Chat.project_id.is_(None)) & (Chat.user_id == user.id))
+        )
+    )
+    for c in q.all():            # удаляем через ORM, чтобы сработали каскады/триггеры
+        db.delete(c)
+    db.commit()
+    return
