@@ -4,7 +4,8 @@ import {
   listProjects, createProject, deleteProject,
   listChatsInProject, listChats, createUnassignedChat,
   updateChat, deleteChat, listTrash, restoreChat,
-  deleteChatPermanent,
+  deleteChatPermanent,            // было
+  emptyTrash,                     // 🆕 добавили
   type Project, type Chat
 } from '@/lib/chatApi'
 
@@ -59,8 +60,7 @@ async function onNewChatUnassigned() {
 
 async function onNewChatInProject(pid: number) {
   const title = prompt('Chat title') || 'New chat'
-  // можно было бы вызвать createChatInProject(pid, title),
-  // но чтобы не плодить обёртки — создадим и сразу переместим
+  // создаём не привязанный чат и сразу переносим в проект
   const c = await createUnassignedChat(title)
   await moveChat(c, pid)
   navigateTo(`/p/${pid}/c/${c.id}`)
@@ -96,7 +96,7 @@ async function renameChat(c: Chat) {
 
 async function removeChat(c: Chat) {
   if (!confirm(`Delete chat "${c.title}"?`)) return
-  await deleteChat(c.id)
+  await deleteChat(c.id) // мягкое удаление → в корзину
   if (c.project_id == null) {
     unassigned.value = unassigned.value.filter(x => x.id !== c.id)
   } else {
@@ -121,13 +121,26 @@ async function deleteForever(c: Chat) {
   trash.value = trash.value.filter(x => x.id !== c.id)
 }
 
+// 🔥 Проект удаляем «жёстко»
 async function removeProject(p: Project) {
   if (!confirm(`Delete project "${p.name}" and all its chats?`)) return
-  await deleteProject(p.id, 'hard') // 'trash' — если хочешь сначала в корзину
+  await deleteProject(p.id, 'hard') // ожидаем поддержку ?mode=hard на бэке
   projects.value = projects.value.filter(x => x.id !== p.id)
   delete chatsByProject.value[p.id]
-  // обновим корзину на случай режима 'trash'
   trash.value = await listTrash()
+}
+
+// 🔥 Очистить корзину (HARD delete всех удалённых чатов)
+async function onEmptyTrash() {
+  if (!trash.value.length) return
+  if (!confirm('Delete all chats in Trash permanently? This cannot be undone.')) return
+  try {
+    await emptyTrash()      // запрос на бэк
+    await loadAll()         // перезагрузка всего дерева (или: trash.value = [])
+  } catch (e) {
+    console.error('[AppProjectTree] emptyTrash error', e)
+    alert('Failed to empty Trash')
+  }
 }
 </script>
 
@@ -267,7 +280,13 @@ async function removeProject(p: Project) {
       <!-- Trash -->
       <div class="px-2 mt-4 text-xs uppercase tracking-wide text-muted-foreground flex items-center gap-2">
         <Trash2 class="h-3 w-3" /> Trash
+
+        <!-- 🆕 Кнопка очистки корзины (hard delete всех удалённых чатов) -->
+        <Button size="xs" variant="ghost" class="ml-auto" @click="onEmptyTrash" :disabled="!trash.length">
+          Empty
+        </Button>
       </div>
+
       <SidebarMenu class="ml-1">
         <SidebarMenuItem v-for="c in trash" :key="c.id" class="flex items-center justify-between gap-2">
           <div class="flex items-center gap-2 flex-1 opacity-70 line-through">

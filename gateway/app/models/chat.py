@@ -31,7 +31,7 @@ class Project(Base):
 
 class Chat(Base):
     __tablename__ = "chats"
-
+    __table_args__ = {"sqlite_autoincrement": True}
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
     # Владелец unassigned-чата (для проектных чатов владелец берётся из Project.user_id)

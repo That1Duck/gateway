@@ -1,8 +1,9 @@
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Body, Response
 from sqlalchemy.orm import Session
+from sqlalchemy import and_, or_, select, delete as sa_delete
 
 from ...db.session import get_db
 from ...models.chat import Project, Chat, Message
@@ -363,17 +364,39 @@ def completion(
     db.refresh(msg)
     return {"message": msg}
 
-@chats.delete("/trash", status_code=status.HTTP_204_NO_CONTENT)
-def empty_trash(db: Session = Depends(get_db), user=Depends(current_user)):
-    q = (
-        db.query(Chat)
+@chats.post("/trash", status_code=status.HTTP_204_NO_CONTENT)
+def empty_trash(
+    _ignore: dict | None = Body(default=None),
+    db: Session = Depends(get_db),
+    user = Depends(current_user),
+):
+    # 1) subquery с ID целевых чатов (без JOIN в delete!)
+    chat_ids_sq = (
+        db.query(Chat.id)
         .outerjoin(Project, Project.id == Chat.project_id)
-        .filter(Chat.deleted_at.is_not(None))
+        .filter(Chat.deleted_at.isnot(None))
         .filter(
-            (Project.user_id == user.id) | ((Chat.project_id.is_(None)) & (Chat.user_id == user.id))
+            or_(
+                and_(Chat.project_id.isnot(None), Project.user_id == user.id),   # чаты в проектах пользователя
+                and_(Chat.project_id.is_(None),   Chat.user_id == user.id),      # одиночные чаты пользователя
+            )
+        )
+        .subquery()
+    )
+
+    # 2) снести сообщения этих чатов bulk-операцией БЕЗ join
+    db.execute(
+        sa_delete(Message).where(
+            Message.chat_id.in_(select(chat_ids_sq.c.id))
         )
     )
-    for c in q.all():            # удаляем через ORM, чтобы сработали каскады/триггеры
-        db.delete(c)
+
+    # 3) снести сами чаты (можно тоже bulk)
+    db.execute(
+        sa_delete(Chat).where(
+            Chat.id.in_(select(chat_ids_sq.c.id))
+        )
+    )
+
     db.commit()
-    return
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

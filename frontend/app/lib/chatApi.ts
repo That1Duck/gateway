@@ -24,6 +24,9 @@ export const createChatInProject = (pid: number, title: string) =>
 export const deleteProject = (pid: number, mode: 'hard'|'trash' = 'hard') =>
   api().raw(`/projects/${pid}`, { method: 'DELETE', query: { mode } }).then(() => {})
 
+export const deleteProjectHard = (pid: number) =>
+  api().raw(`/projects/${pid}/hard`, { method: 'DELETE' }).then(() => {})
+
 /** Chats (global) */
 export const listChats = (params?: { project_id?: number; unassigned?: boolean; include_deleted?: boolean }) =>
   api()<Chat[]>('/chats', { method: 'GET', query: params as any })
@@ -43,6 +46,9 @@ export const deleteChatPermanent = (chatId: number) =>
 export const listTrash = () => api()<Chat[]>('/chats/trash', { method: 'GET' })
 export const restoreChat = (chatId: number) =>
   api()<Chat>(`/chats/${chatId}/restore`, { method: 'POST' })
+
+export const emptyTrash = () =>
+  api().raw('/chats/trash', { method: 'POST' }).then(() => {})
 
 /** Messages & Completion */
 export const listMessages = (chatId: number) =>
