@@ -1,0 +1,9 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+dist
+.output/public
+__pycache__
+*.pyc
+data/*.db-journal

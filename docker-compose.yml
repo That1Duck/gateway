@@ -1,0 +1,43 @@
+version: "3.9"
+
+services:
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    container_name: gateway
+    env_file:
+      - ./gateway/.env
+    environment:
+      - DATABASE_URL=sqlite:///./data/app.db
+      - CORS_ORIGINS=http://localhost:3000
+    volumes:
+      - gateway_data:/app/data
+    ports:
+      - "8000:8000"
+    networks:
+      - appnet
+    restart: unless-stopped
+
+  front:
+    build:
+      context: ./front
+      dockerfile: Dockerfile
+    container_name: front
+    environment:
+      - NUXT_PUBLIC_API_BASE=/api/api/v1
+      - NUXT_API_ORIGIN=http://gateway:8000
+      - PORT=3000
+    depends_on:
+      - gateway
+    ports:
+      - "3000:3000"
+    networks:
+      - appnet
+    restart: unless-stopped
+
+networks:
+  appnet:
+
+volumes:
+  gateway_data:
