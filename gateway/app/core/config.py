@@ -35,6 +35,10 @@ class Settings(BaseSettings):
 
     GOOGLE_API_KEY: Optional[str] = None
 
+    QUEUE_MODE: str = "dramatiq"
+    REDIS_URL: str = "redis: // localhost: 6379 / 0"
+    UPLOAD_DIR: str ="./ data / uploads"
+
     @property
     def cors_origins_list(self) -> List[str]:
         """Return list of origins from the list .env"""

@@ -10,7 +10,7 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar'
 import { Button } from '@/components/ui/button'
-import { Home, Settings, LogOut, LogIn } from 'lucide-vue-next'
+import { Home, Settings, LogOut, LogIn, FileText } from 'lucide-vue-next'
 import { useAuth } from '@/lib/useAuth'
 import AppProjectTree from '@/components/AppProjectTree.vue'
 
@@ -18,6 +18,7 @@ const { user, isAuthenticated, logout } = useAuth()
 
 const items = [
   { title: 'Home', url: '/', icon: Home },
+  { title: 'Documents', url: '/documents', icon: FileText},
   { title: 'Settings', url: '/login', icon: Settings }, // временно
 ]
 
