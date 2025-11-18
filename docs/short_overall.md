@@ -111,12 +111,17 @@ textarea, send button, suggestion prompts (optional popover)
 ## Component Responsibilities
 Component	Responsibility
 
-AppProjectTree.vue	Project list, chat list, trash; create/delete/hard delete
-AppChat.vue	Render messages (user/assistant), auto-scroll
-AppComposer.vue	Handle input, send user message, show suggestions
-pages/p/[pid]/c/[cid].vue	Single chat page; loads messages for current chat id; watches cid changes
-lib/chatApi.ts	Typed wrappers for backend API
-lib/api.ts	Creates ofetch instance with auth cookies & runtimeConfig
+`AppProjectTree.vue`	Project list, chat list, trash; create/delete/hard delete
+
+`AppChat.vue`	Render messages (user/assistant), auto-scroll
+
+`AppComposer.vue`	Handle input, send user message, show suggestions
+
+`pages/p/[pid]/c/[cid].vue`	Single chat page; loads messages for current chat id; watches cid changes
+
+`lib/chatApi.ts`	Typed wrappers for backend API
+
+`lib/api.ts`	Creates ofetch instance with auth cookies & runtimeConfig
 
 ## 🧩 Frontend → Backend Integration
 
