@@ -35,6 +35,11 @@ class Settings(BaseSettings):
 
     GOOGLE_API_KEY: Optional[str] = None
 
+    META_WHATSAPP_VERIFY_TOKEN: Optional[str] = None
+    META_WHATSAPP_ACCESS_TOKEN: Optional[str] = None
+    META_WHATSAPP_PHONE_NUMBER_ID: Optional[str] = None
+    META_WHATSAPP_API_VERSION: str = "v21.0"
+
     QUEUE_MODE: str = "dramatiq"
     REDIS_URL: str = "redis: // localhost: 6379 / 0"
     UPLOAD_DIR: str ="./ data / uploads"
