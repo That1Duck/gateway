@@ -11,3 +11,7 @@ class WhatsappUser(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement= True)
     user_id: Mapped[int | None] = mapped_column(Integer, nullable= True, index=True)
     phone: Mapped[str] = mapped_column(String(32), nullable= False, index=True)
+
+    # current chat or project
+    active_project_id: Mapped[int | None] = mapped_column(Integer, nullable= True)
+    active_chat_id: Mapped[int | None] = mapped_column(Integer, nullable= True)

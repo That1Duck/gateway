@@ -28,3 +28,8 @@ gateway/app/
 2. * New table for whatsapp user data `models\whatsapp_user`
    * Service searching for user in db by phone number or creating new one `services\whatsapp_user`
    * Rewrote `handle_incoming_text` in `engines` and added `router_user_message` as a menu manager.  
+---
+3. * Extended:
+     * `models\whatsapp_user`
+     * Service `services\whatsapp_user`
+     * Menu in `engines`. Functionality implementation required. 
