@@ -1,4 +1,6 @@
 from sqlalchemy.orm import Session
+
+from ..core.config import settings
 from ..db.session import SessionLocal
 from .client import WhatsAppClient
 from ..services.whatsapp_user import get_or_create_whatsapp_user
@@ -52,7 +54,11 @@ def router_user_message(wa_user, text: str, db: Session) -> str:
     Base route. Just framework for now.
     Proces menu for user.
     """
-    norm = text.strip().lower()
+    raw = (text or "").strip()
+    if not raw:
+        return "Empty message. Type 'help' to see available commands."
+
+    norm = raw.lower()
 
     try:
         user = _ensure_linked_user(wa_user)
@@ -83,25 +89,59 @@ def router_user_message(wa_user, text: str, db: Session) -> str:
     # PROJECTS
     # ------------------------------------------------------------------
 
-    # 1) Create project
+    # 1) Create project: project new <name>
     if norm.startswith("project new "):
-        name = text[len("project new "):].strip()
+        name = raw[len("project new "):].strip()
         if not name:
             return "Please provide project name, e.g. 'new project My Docs'."
         p = Project(user_id = user, name = name)
         db.add(p)
         db.commit()
         db.refresh(p)
+        _set_active_project(db, wa_user, p.id)
         return f"Project {name} created with id={p.id}."
 
-    # 2) Delete project
+    # 2) Delete project: project delete <id>
     if norm.startswith("project delete "):
-        name = text[len("project delete "):].strip()
-        if not name:
-            return "Please provide project id"
+        name_id = norm[len("project delete "):].strip()
+        if not name_id.isdigit():
+            return "Please provide numeric project id, e.g. 'project delete 1'."
 
-        # TODO: call service
-        return f"Project {name}"
+        pid = int(name_id)
+        p = _get_user_project_or_404(db, user, pid)
+        now = datetime.utcnow()
+
+        chats = db.query(Chat).filter(Chat.project_id == pid).all()
+        for c in chats:
+            if c.deleted_at is None:
+                c.deleted_at = now
+        db.delete(p)
+        db.commit()
+
+        if wa_user.active_project_id == pid:
+            _set_active_project(db, wa_user, None)
+
+        return f"Project {pid} deleted (its chats moved to trash)."
+
+    # 3) Delete project hard: project delete hard <id>
+    if norm.startswith("project delete hard "):
+        name_id = norm[len("project delete hard "):].strip()
+        if not name_id.isdigit():
+            return "Please provide numeric project id, e.g. 'project delete hard 1'."
+
+        pid = int(name_id)
+        p = _get_user_project_or_404(db, user, pid)
+
+        chats = db.query(Chat).filter(Chat.project_id == pid).all()
+        for c in chats:
+            db.delete(c)
+        db.delete(p)
+        db.commit()
+
+        if wa_user.active_project_id == pid:
+            _set_active_project(db, wa_user, None)
+
+        return f"Project {pid} and all its chats were HARD-deleted."
 
     # 4) List
     if norm == "project list":
@@ -122,11 +162,35 @@ def router_user_message(wa_user, text: str, db: Session) -> str:
     # CHATS
     # ------------------------------------------------------------------
 
-    # 5) Create chat in project <project_id> <title>
+    # 5) Create chat in project: chat new <project_id> <title>
     if norm.startswith("chat new "):
+        parts = raw.split(maxsplit=3)
+        if len(parts):
+            return "Usage: chat new <project_id> <title>"
+        _, _, project_id_str, title = parts
+        if not project_id_str.isdigit():
+            return "Project id must be a number."
+        pid = int(project_id_str)
 
-        # TODO call service
-        return f"Create chat"
+        _get_user_project_or_404(db, user, pid)
+
+        c = Chat(
+            project_id = pid,
+            user_id = None,
+            title=(title or "New chat").strip(),
+            provider = "gemini",
+            model = "gemini-1.5",
+            settings_json = None,
+            created_at = datetime.utcnow()
+        )
+        db.add(c)
+        db.commit()
+        db.refresh(c)
+
+        _set_active_chat(db, wa_user, pid)
+        _set_active_chat(db, wa_user, c.id)
+
+        return f"Create {c.title} created in project {pid}"
 
     # 6) Move chat <chat_id> <project_id>
     if norm.startswith("chat move "):
@@ -154,7 +218,7 @@ def router_user_message(wa_user, text: str, db: Session) -> str:
 
     # 7) Delete chat: chat delete <chat_id>
     if norm.startswith("chat delete "):
-        name = text[len("chat open "):].strip()
+        name = norm[len("chat open "):].strip()
         if not name.isdigit():
             return "Please provide numeric chat id, e.g. 'chat delete 1'."
         cid = int(name)
@@ -165,9 +229,24 @@ def router_user_message(wa_user, text: str, db: Session) -> str:
         db.commit()
         return f"Chat {cid} moved to trash."
 
-    # 8) Chat open: chat open <chat_id>
+    # 8) Delete chat hard: chat delete hard <chat_id>
+    if norm.startswith("chat delete hard "):
+        rest = norm[len("chat delete hard "):].strip()
+        if not rest.isdigit():
+            return "Please provide numeric chat id, e.g. 'chat delete hard 1'."
+        cid = int(rest)
+        chat = _get_user_chat_or_404(db, user, cid)
+        db.delete(chat)
+        db.commit()
+
+        if wa_user.active_chat_id == cid:
+            _set_active_chat(db, wa_user, None)
+
+        return f"Chat {cid} HARD-deleted."
+
+    # 9) Chat open: chat open <chat_id>
     if norm.startswith("chat open "):
-        name = text[len("chat open "):].strip()
+        name = norm[len("chat open "):].strip()
         if not name.isdigit():
             return "Please provide numeric chat id, e.g. 'chat open 1'."
         cid = int(name)
@@ -180,6 +259,7 @@ def router_user_message(wa_user, text: str, db: Session) -> str:
             .all()
         )
         msgs = list(reversed(msgs))
+        _set_active_chat(db, wa_user, cid)
         lines = [f"Chat [{chat.id}] '{chat.title}':"]
         if not msgs:
             lines.append("(no messages yet)")
@@ -189,15 +269,23 @@ def router_user_message(wa_user, text: str, db: Session) -> str:
                 lines.append(f"[{ts}] {m.role}: {m.content}")
         return "\n".join(lines)
 
-    # 9) Use project: use project <id>
-    if norm.startswith("use project "):
-        name = text[len("use project "):].strip()
-        # TODO call service
-        return f"Use project"
+    # ------------------------------------------------------------------
+    # USE OF CHAT AND PROJECT
+    # ------------------------------------------------------------------
 
-    # 10) Use chat: use chat <id>
+    # 10) Use project: use project <id>
+    if norm.startswith("use project "):
+        name_id = norm[len("use project "):].strip()
+        if not name_id.isdigit():
+            return "Please provide numeric project id, e.g. 'use project 1'."
+        pid = int(name_id)
+        _get_user_project_or_404(db,user,pid)
+        _set_active_project(db,wa_user, pid)
+        return f"Active project set to {pid}."
+
+    # 11) Use chat: use chat <id>
     if norm.startswith("use chat "):
-        name = text[len("use chat "):].strip()
+        name = norm[len("use chat "):].strip()
         if not name.isdigit():
             return "Please provide numeric chat id, e.g. 'use chat 1'."
         cid = int(name)

@@ -35,3 +35,6 @@ gateway/app/
      * Menu in `engines`. Functionality implementation required.
 ---
 4. * Extended `engine.py`
+---
+5. * Supplemented and corrected `engine.py`
+---
