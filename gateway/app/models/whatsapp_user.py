@@ -5,7 +5,8 @@ from ..db.base import Base
 class WhatsappUser(Base):
     __tablename__ = "whatsapp_user"
     __table_args__ = (
-        UniqueConstraint("phone", name = "uq_whatsapp_user_phone")
+        UniqueConstraint("phone", name="uq_whatsapp_user_phone"),
+        {"sqlite_autoincrement": True},
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement= True)
