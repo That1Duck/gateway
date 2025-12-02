@@ -4,7 +4,9 @@ from ..db.base import Base
 
 class LlmSettings(Base):
     __tablename__ = "llm_settings"
-    __table_args__ = (UniqueConstraint("user_id", name = "uq_llm_settings_user"))
+    __table_args__ = (
+        UniqueConstraint("user_id", name = "uq_llm_settings_user"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(Integer, index=True, nullable=False)
