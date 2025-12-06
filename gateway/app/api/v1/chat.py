@@ -16,7 +16,6 @@ from ...schemas.chat import (
 from ...services.llm_facade import LLMFacade
 from ...deps import current_user
 
-_llm = LLMFacade()
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Вспомогательные проверки доступа
@@ -345,9 +344,10 @@ def completion(
     user=Depends(current_user),
 ):
     _get_user_chat_or_404(db, user, chat_id)
+    llm = LLMFacade(db, user.id)
 
     # Заглушка: ответ строится на основе последнего user-сообщения
-    text = _llm.complete(
+    text = llm.complete(
         [m.model_dump() for m in body.messages],
         model=body.model,
         settings=body.settings,

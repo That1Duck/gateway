@@ -1,24 +1,33 @@
 # app/services/llm_facade.py
+from sqlalchemy.orm import Session
 from .llm_port import LLMClient
 from .gemini_adapter import GeminiAdapter
 from .retry_decorator import RetryDecorator
 from .llm_router import LLMRouter
+from .llm_factory import make_llm
 
 # Якщо хочеш fallback, коли буде OpenAIAdapter:
 # from .openai_adapter import OpenAIAdapter
 
 class LLMFacade:
-    def __init__(self, client: LLMClient | None = None):
-        # 🔹 Базовий клієнт
-        base_client = client or GeminiAdapter()
+    def __init__(self, db: Session, user_id: int, *,
+                 client: LLMClient | None = None,
+                 use_router: bool = False,
+                 retries: int = 2,
+                 delay: float = 1.0):
 
-        # 🔹 Обгортка з ретраями
-        retry_client = RetryDecorator(base_client, retries=2, delay=1.0)
+        base_client: LLMClient = client or make_llm(
+            db = db,
+            user_id= user_id,
+            user_router= use_router
+        )
 
-        # 🔹 Якщо додамо fallback (напр. OpenAI)
-        # fallback_client = OpenAIAdapter()
-        # self.client = LLMRouter(retry_client, fallback_client)
-        # Поки що просто retry
+        retry_client: LLMClient = RetryDecorator(
+            base_client,
+            retries=retries,
+            delay=delay
+        )
+
         self.client = retry_client
 
     def complete(self, messages, **kw) -> str:

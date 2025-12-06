@@ -1,10 +1,14 @@
 import google.generativeai as genai
 from typing import List, Dict, Optional
-from ..core.config import settings
+from .llm_settings import get_or_create_settings, get_api_key
+from sqlalchemy.orm import Session
 
 class LLMService:
-    def __init__(self):
-        api_key = settings.GOOGLE_API_KEY
+    def __init__(self, db: Session, user_id: int):
+        self.db = db
+        self.user_id = user_id
+        self.llm_settings = get_or_create_settings(db, user_id)
+        api_key = get_api_key(db, user_id, "gemini")
         if not api_key:
             raise RuntimeError("GOOGLE_API_KEY is not set")
         genai.configure(api_key=api_key)
@@ -27,15 +31,21 @@ class LLMService:
             else:
                 history.append({"role": "user", "parts": [content]})
 
+        base_temp = self.llm_settings.temperature or 0.7
+        base_max_tokens = self.llm_settings.max_tokens or 1024
+
         # ---- конфіг генерації
         generation_config = {
-            "temperature": (settings_dict or {}).get("temperature", 0.7),
+            "temperature": (settings_dict or {}).get("temperature", base_temp),
             "top_p": (settings_dict or {}).get("top_p", 0.95),
-            "max_output_tokens": (settings_dict or {}).get("max_tokens", 1024),
+            "max_output_tokens": (settings_dict or {}).get("max_tokens", base_max_tokens),
         }
 
+        default_model = self.llm_settings.default_model or "gemini-2.5-pro"
+        main_model = model or default_model
+
         # ---- список моделей для спроб (основна → запасні)
-        candidates = [model or "gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite"]
+        candidates = [main_model or "gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite"]
 
         for name in candidates:
             try:

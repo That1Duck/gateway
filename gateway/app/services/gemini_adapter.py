@@ -1,11 +1,12 @@
 # app/services/gemini_adapter.py
 from typing import Iterable, Dict, List, Any
+from sqlalchemy.orm import Session
 from .llm_port import LLMClient
-from .llm_service import LLMService  # ваш реальный сервис работы с Gemini
+from .llm_service import LLMService
 
 class GeminiAdapter(LLMClient):
-    def __init__(self, model: str = "gemini-2.5-flash"):
-        self.inner = LLMService()
+    def __init__(self, db:Session, user_id: int, model: str = "gemini-2.5-flash"):
+        self.inner = LLMService(db, user_id)
         self.model = model
 
     def generate(self, prompt: str, **kw) -> str:
