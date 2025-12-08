@@ -10,7 +10,7 @@ class LLMService:
         self.llm_settings = get_or_create_settings(db, user_id)
         api_key = get_api_key(db, user_id, "gemini")
         if not api_key:
-            raise RuntimeError("GOOGLE_API_KEY is not set")
+            raise RuntimeError("Gemini API key is not configured for this user.")
         genai.configure(api_key=api_key)
 
     def complete(

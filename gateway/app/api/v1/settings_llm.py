@@ -33,7 +33,7 @@ def get_llm_settings(
     """
     # checking if cache is in redis
     cache_key = _settings_cache_key(user.id)
-    cached = cache_set_json(cache_key)
+    cached = cache_get_json(cache_key)
     if cached is not None:
         return cached
 

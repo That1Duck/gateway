@@ -71,7 +71,7 @@ def set_api_key(db: Session, user_id: int, provider:str, api_key: str) -> LlmApi
         db.query(LlmApiCredential)
         .filter(
             LlmApiCredential.user_id == user_id,
-            LlmApiCredential.provider == provider
+            LlmApiCredential.provider == provider,
         )
         .first()
     )
@@ -80,7 +80,7 @@ def set_api_key(db: Session, user_id: int, provider:str, api_key: str) -> LlmApi
         cred = LlmApiCredential(
             user_id = user_id,
             provider = provider,
-            encrypt_api_key = encrypt
+            encrypted_api_key=encrypt,
         )
         db.add(cred)
     else:

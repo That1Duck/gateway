@@ -19,7 +19,7 @@ const { user, isAuthenticated, logout } = useAuth()
 const items = [
   { title: 'Home', url: '/', icon: Home },
   { title: 'Documents', url: '/documents', icon: FileText},
-  { title: 'Settings', url: '/settings', icon: Settings }, // временно
+  { title: 'Settings', url: '/settings', icon: Settings },
 ]
 
 async function onLogout() {

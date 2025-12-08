@@ -1,12 +1,13 @@
 import os
-from typing import Optional
+from .config import Settings
 from cryptography.fernet import Fernet, InvalidToken
 
 class EncryptionError(Exception):
     """Generic encryption/decryption error."""
 
 def _get_fernet() -> Fernet:
-    key = os.getenv("LLM_SETTINGS_SECRET_KEY")
+    settings = Settings()
+    key = settings.LLM_SETTINGS_SECRET_KEY
     if not key:
         raise EncryptionError("LLM_SETTINGS_SECRET_KEY is not set in environment.")
     try:

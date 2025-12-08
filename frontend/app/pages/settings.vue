@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useFetch } from '#app'
 
 type LlmSettingsOut = {
@@ -33,23 +33,47 @@ type LlmCredentialsUpdate = {
   grok_api_key?: string | null
 }
 
+// --- грузим настройки с бэка ---
 const { data, pending, error, refresh } = await useFetch<LlmSettingsOut>(
-  '/api/v1/settings/llm',
-  { method: 'GET' }
+  '/api/api/v1/settings/llm',
+  {
+    method: 'GET',
+    credentials: 'include',   // на всякий случай явно
+  }
 )
 
+// локальная форма с настройками
 const form = ref<LlmSettingsUpdate>({
-  default_provider: data.value?.default_provider ?? 'openai',
-  default_model: data.value?.default_model ?? '',
-  temperature: data.value?.temperature ?? 0.7,
-  max_tokens: data.value?.max_tokens ?? null,
-  use_streaming: data.value?.use_streaming ?? true,
-  use_rag_by_default: data.value?.use_rag_by_default ?? false,
-  log_prompts: data.value?.log_prompts ?? false,
-  timeout_seconds: data.value?.timeout_seconds ?? 30
+  default_provider: 'openai',
+  default_model: '',
+  temperature: 0.7,
+  max_tokens: null,
+  use_streaming: true,
+  use_rag_by_default: false,
+  log_prompts: false,
+  timeout_seconds: 30,
 })
 
+// когда данные приехали — синхронизируем форму
+watch(
+  data,
+  (val) => {
+    if (!val) return
+    form.value = {
+      default_provider: val.default_provider,
+      default_model: val.default_model,
+      temperature: val.temperature,
+      max_tokens: val.max_tokens,
+      use_streaming: val.use_streaming,
+      use_rag_by_default: val.use_rag_by_default,
+      log_prompts: val.log_prompts,
+      timeout_seconds: val.timeout_seconds,
+    }
+  },
+  { immediate: true }
+)
 
+// инпуты для API-ключей (их никогда не показываем обратно)
 const openaiKey = ref('')
 const geminiKey = ref('')
 const grokKey = ref('')
@@ -58,14 +82,16 @@ const savingSettings = ref(false)
 const savingKeys = ref(false)
 const message = ref<string | null>(null)
 
+// --- сохранить общие настройки ---
 async function saveSettings() {
   try {
     savingSettings.value = true
     message.value = null
 
-    await $fetch<LlmSettingsOut>('/api/v1/settings/llm', {
+    await $fetch('/api/api/v1/settings/llm', {
       method: 'PUT',
-      body: form.value
+      body: form.value,
+      credentials: 'include',
     })
 
     await refresh()
@@ -78,6 +104,7 @@ async function saveSettings() {
   }
 }
 
+// --- сохранить API-ключи ---
 async function saveKeys() {
   try {
     savingKeys.value = true
@@ -93,11 +120,13 @@ async function saveKeys() {
       return
     }
 
-    await $fetch('/api/v1/settings/llm/credentials', {
+    await $fetch('/api/api/v1/settings/llm/credentials', {
       method: 'PUT',
-      body: payload
+      body: payload,
+      credentials: 'include',
     })
 
+    // ключи не возвращаем — просто очищаем поля
     openaiKey.value = ''
     geminiKey.value = ''
     grokKey.value = ''
@@ -117,14 +146,17 @@ async function saveKeys() {
   <div class="p-6 space-y-6">
     <h1 class="text-2xl font-semibold mb-4">LLM Settings</h1>
 
+    <!-- состояние загрузки / ошибок -->
     <div v-if="pending">Loading...</div>
     <div v-else-if="error">Failed to load settings.</div>
-    <div v-else-if="data">
-      <div v-if="message" class="border rounded p-2 text-sm">
+
+    <div v-else>
+      <!-- сообщение об успехе/ошибке -->
+      <div v-if="message" class="border rounded p-2 text-sm mb-2">
         {{ message }}
       </div>
 
-      <!-- Общие LLM-настройки -->
+      <!-- Блок: General -->
       <section class="border rounded-lg p-4 space-y-4">
         <h2 class="text-lg font-medium">General</h2>
 
@@ -147,7 +179,7 @@ async function saveKeys() {
               v-model="form.default_model"
               type="text"
               class="border rounded px-2 py-1 w-full"
-              placeholder="gpt-4o, gemini-2.0-pro, grok-2..."
+              placeholder="gpt-4o, gemini-2.5-pro, grok-2..."
             />
           </div>
 
@@ -174,7 +206,11 @@ async function saveKeys() {
           </div>
 
           <div class="flex items-center gap-2">
-            <input id="use_streaming" v-model="form.use_streaming" type="checkbox" />
+            <input
+              id="use_streaming"
+              v-model="form.use_streaming"
+              type="checkbox"
+            />
             <label for="use_streaming" class="text-sm">Use streaming</label>
           </div>
 
@@ -190,14 +226,20 @@ async function saveKeys() {
           </div>
 
           <div class="flex items-center gap-2">
-            <input id="log_prompts" v-model="form.log_prompts" type="checkbox" />
+            <input
+              id="log_prompts"
+              v-model="form.log_prompts"
+              type="checkbox"
+            />
             <label for="log_prompts" class="text-sm">
               Log prompts and responses
             </label>
           </div>
 
           <div>
-            <label class="block text-sm font-medium mb-1">Timeout (seconds)</label>
+            <label class="block text-sm font-medium mb-1">
+              Timeout (seconds)
+            </label>
             <input
               v-model.number="form.timeout_seconds"
               type="number"
@@ -216,13 +258,13 @@ async function saveKeys() {
         </button>
       </section>
 
-      <!-- API ключи -->
+      <!-- Блок: API Keys -->
       <section class="border rounded-lg p-4 space-y-4">
         <h2 class="text-lg font-medium">API keys</h2>
 
         <p class="text-xs text-gray-500">
-          Keys are stored encrypted and are never shown back. Indicators below
-          only show whether a key is set.
+          Keys are stored encrypted and are never shown back. Indicators show only
+          whether a key is set.
         </p>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -230,7 +272,7 @@ async function saveKeys() {
             <label class="block text-sm font-medium mb-1">
               OpenAI API key
               <span class="ml-2 text-xs">
-                ({{ data.has_openai_key ? 'set' : 'not set' }})
+                ({{ data?.has_openai_key ? 'set' : 'not set' }})
               </span>
             </label>
             <input
@@ -245,7 +287,7 @@ async function saveKeys() {
             <label class="block text-sm font-medium mb-1">
               Gemini API key
               <span class="ml-2 text-xs">
-                ({{ data.has_gemini_key ? 'set' : 'not set' }})
+                ({{ data?.has_gemini_key ? 'set' : 'not set' }})
               </span>
             </label>
             <input
@@ -260,7 +302,7 @@ async function saveKeys() {
             <label class="block text-sm font-medium mb-1">
               Grok API key
               <span class="ml-2 text-xs">
-                ({{ data.has_grok_key ? 'set' : 'not set' }})
+                ({{ data?.has_grok_key ? 'set' : 'not set' }})
               </span>
             </label>
             <input
