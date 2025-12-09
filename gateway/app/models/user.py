@@ -4,6 +4,7 @@ from datetime import datetime
 from sqlalchemy import String, Integer, DateTime, func, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from gateway.app.models.telegram_account import TelegramAccount
 from ..db.base import Base
 
 
@@ -31,4 +32,8 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
         passive_deletes=True,
+    )
+    telegram_accounts: Mapped[list["TelegramAccount"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
     )
