@@ -25,6 +25,7 @@ class TelegramAccount(Base):
     user: Mapped["User"] = relationship(back_populates="telegram_accounts")
 
     active_chat_id: Mapped[int | None] = mapped_column(ForeignKey("chats.id"))
+    active_project_id: Mapped[int | None] = mapped_column(ForeignKey("projects.id"))
     active_chat: Mapped["Chat"] = relationship()
 
     is_active: Mapped[bool] = mapped_column(Boolean, server_default="1")
