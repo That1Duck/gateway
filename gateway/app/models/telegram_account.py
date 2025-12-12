@@ -21,7 +21,7 @@ class TelegramAccount(Base):
     last_name: Mapped[str | None] = mapped_column(String)
     language_code: Mapped[str | None] = mapped_column(String(10))
 
-    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     user: Mapped["User"] = relationship(back_populates="telegram_accounts")
 
     active_chat_id: Mapped[int | None] = mapped_column(ForeignKey("chats.id"))
