@@ -49,7 +49,7 @@ class Chat(Base):
 
     title: Mapped[str] = mapped_column(String(200), nullable=False, default="New chat")
     provider: Mapped[str] = mapped_column(String(50), default="gemini", nullable=False)
-    model: Mapped[str] = mapped_column(String(100), default="gemini-1.5-pro", nullable=False)
+    model: Mapped[str] = mapped_column(String(100), default="gemini-2.5-flash", nullable=False)
     settings_json: Mapped[dict | None] = mapped_column(JSON, default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=None, index=True)

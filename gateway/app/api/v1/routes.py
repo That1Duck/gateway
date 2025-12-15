@@ -6,6 +6,7 @@ from .chat import chats as chats_router
 from .document import router as doc_router
 from .settings_llm import router as llm_router
 from .telegram_link import router as telegram_linker
+from .telegram_bot import router as telegram_bot
 
 """
 Main router for v1 API
@@ -22,3 +23,4 @@ api_router.include_router(chats_router)
 api_router.include_router(doc_router)
 api_router.include_router(llm_router)
 api_router.include_router(telegram_linker)
+api_router.include_router(telegram_bot)
