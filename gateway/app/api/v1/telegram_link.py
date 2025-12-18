@@ -68,6 +68,7 @@ def link_telegram_account(
     if not account:
         account = TelegramAccount(
             telegram_id=payload.telegram_id,
+            user_id = user.id,
             user_name=payload.user_name,
             first_name=payload.first_name,
             last_name=payload.last_name,
@@ -84,6 +85,7 @@ def link_telegram_account(
         account.last_name = payload.last_name or account.last_name
         account.language_code = payload.language_code or account.language_code
         account.last_seen_at = datetime.utcnow()
+        account.user_id = user.id
 
     account.user_id = user.id
     if not account.active_chat_id:

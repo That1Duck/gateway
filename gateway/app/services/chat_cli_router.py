@@ -86,7 +86,7 @@ def router_user_message(chanel_user, text: str, db:Session) -> str:
             return "Usage: project delete <id>"
 
         pid = int(rest)
-        p = _get_user_project_or_404(db, user, id)
+        p = _get_user_project_or_404(db, user, pid)
 
         now = datetime.utcnow()
         chats = db.query(Chat).filter(Chat.project_id == pid).all()
@@ -172,7 +172,7 @@ def router_user_message(chanel_user, text: str, db:Session) -> str:
         if len(parts) != 4:
             return "Usage: chat move <chat_id> <project_id>"
         _,_, cid_str, pid_str = parts
-        if not cid_str.isdigit() or pid_str.isdigit():
+        if not cid_str.isdigit() or not pid_str.isdigit():
             return "chat_id and project_id must be numbers."
 
         cid = int(cid_str)
@@ -185,8 +185,8 @@ def router_user_message(chanel_user, text: str, db:Session) -> str:
         db.commit()
         db.refresh(chat)
 
-        if getattr(chanel_user, "active_chat_id", None) == cid:
-            _set_active_chat(db,chanel_user,project.id)
+        # if getattr(chanel_user, "active_chat_id", None) == cid:
+        #     _set_active_chat(db,chanel_user,project.id)
 
         return f"Chat {chat.id} moved to project {project.id}"
 
@@ -256,6 +256,7 @@ def router_user_message(chanel_user, text: str, db:Session) -> str:
         pid = int(rest)
         _get_user_project_or_404(db, user, pid)
         _set_active_project(db, chanel_user, pid)
+        _set_active_chat(db, chanel_user, None)
         return f"Active project set to {pid}"
 
     # use chat <chat_id>
@@ -264,6 +265,8 @@ def router_user_message(chanel_user, text: str, db:Session) -> str:
         if not rest.isdigit():
             return "Usage: use chat <chat_id>"
         cid = int(rest)
-        _get_user_chat_or_404(db, chanel_user, cid)
-        _set_active_project(db, chanel_user, cid)
+        chat = _get_user_chat_or_404(db, user, cid)
+        _set_active_chat(db, chanel_user, cid)
+        if chat.project_id is not None:
+            _set_active_project(db, chanel_user, chat.project_id)
         return f"Active chat set to {cid}"

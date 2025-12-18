@@ -22,6 +22,7 @@ def _settings_cache_key(user_id: int) -> str:
 
 router = APIRouter(prefix="/settings/llm", tags=["llm-settings"])
 
+@router.get("", response_model=LlmSettingsOut)
 @router.get("/", response_model=LlmSettingsOut)
 def get_llm_settings(
         db: Session = Depends(get_db),
@@ -61,6 +62,7 @@ def get_llm_settings(
     cache_set_json(cache_key, result.model_dump(), ttl_seconds=300)
     return result
 
+@router.put("", response_model=LlmSettingsOut)
 @router.put("/", response_model=LlmSettingsOut)
 def update_llm_settings(
         payload: LlmSettingsUpdate,

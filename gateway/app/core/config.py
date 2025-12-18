@@ -37,6 +37,8 @@ class Settings(BaseSettings):
 
     LLM_SETTINGS_SECRET_KEY: Optional[str] = None
 
+    TELEGRAM_BOT_TOKEN: Optional[str] = None
+
     QUEUE_MODE: str = "dramatiq"
     REDIS_URL: str = "redis: // localhost: 6379 / 0"
     UPLOAD_DIR: str ="./ data / uploads"

@@ -19,7 +19,10 @@ def telegram_message(payload: TelegramMessageRequest, db: Session = Depends(get_
         .first()
     )
     if not acc:
-        raise HTTPException(status_code=404, detail="Telegram account not found. Use /link first.")
+        #raise HTTPException(status_code=404, detail="Telegram account not found. Use /link first.")
+        return TelegramMessageResponse(
+            reply="Telegram account not found. Please link first: /link <code> (get code on website)."
+        )
 
 
     if not acc.user_id:

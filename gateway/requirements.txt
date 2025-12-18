@@ -25,3 +25,6 @@ SQLAlchemy==2.0.34
 # ----  ----
 dramatiq
 redis
+
+# ---- ----
+aiogram
