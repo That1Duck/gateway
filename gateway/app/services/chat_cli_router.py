@@ -61,6 +61,7 @@ def router_user_message(chanel_user, text: str, db:Session) -> str:
             "- chat delete <chat_id>\n"
             "- chat delete hard <chat_id>\n"
             "- chat open <chat_id>\n"
+            "- chat list\n"
             "- use project <project_id>\n"
             "- use chat <chat_id>\n"
         )
@@ -78,6 +79,26 @@ def router_user_message(chanel_user, text: str, db:Session) -> str:
 
         _set_active_project(db, chanel_user, p.id)
         return f"Project {name} created with id = {p.id}"
+
+    # project delete hard <id>
+    if norm.startswith("project delete hard "):
+        rest = norm[len("project delete hard "):].strip()
+        if not rest.isdigit():
+            return "Usage: project delete hard <id>"
+
+        pid = int(rest)
+        p = _get_user_project_or_404(db, user, pid)
+
+        chats = db.query(Chat).filter(Chat.project_id == pid).all()
+        for c in chats:
+            db.delete(c)
+        db.delete(p)
+        db.commit()
+
+        if getattr(chanel_user, "active_project_id", None) == pid:
+            _set_active_project(db, chanel_user, None)
+
+        return f"Project {pid} and all its chats were HARD-deleted"
 
     # project delete <id>
     if norm.startswith("project delete "):
@@ -101,26 +122,6 @@ def router_user_message(chanel_user, text: str, db:Session) -> str:
             _set_active_project(db, chanel_user, None)
 
         return f"Project {pid} deleted (its chats moved to trash)"
-
-    # project delete hard <id>
-    if norm.startswith("project delete hard "):
-        rest = norm[len("project delete hard "):].strip()
-        if not rest.isdigit():
-            return "Usage: project delete hard <id>"
-
-        pid = int(rest)
-        p = _get_user_project_or_404(db, user, pid)
-
-        chats = db.query(Chat).filter(Chat.project_id == pid).all()
-        for c in chats:
-            db.delete(c)
-        db.delete(p)
-        db.commit()
-
-        if getattr(chanel_user, "active_project_id", None) == pid:
-            _set_active_project(db, chanel_user, None)
-
-        return f"Project {pid} and all its chats were HARD-deleted"
 
     # project list
     if norm == ("project list"):
@@ -190,22 +191,6 @@ def router_user_message(chanel_user, text: str, db:Session) -> str:
 
         return f"Chat {chat.id} moved to project {project.id}"
 
-    # chat delete <chat_id>
-    if norm.startswith("chat delete "):
-        rest = norm[len("chat delete "):].strip()
-        if not rest.isdigit():
-            return "Usage: chat open <chat_id>"
-
-        cid = int(rest)
-        chat = _get_user_chat_or_404(db, user, cid)
-
-        if getattr(chat, "deleted_at", None) is not None:
-            return f"Chat {cid} is already in trash"
-
-        chat.deleted_at = datetime.utcnow()
-        db.commit()
-        return f"Chat {cid} moved to trash."
-
     # chat delete hard <chat_id>
     if norm.startswith("chat delete hard "):
         rest = norm[len("chat delete hard "):].strip()
@@ -221,6 +206,22 @@ def router_user_message(chanel_user, text: str, db:Session) -> str:
             _set_active_chat(db, chanel_user, None)
 
         return f"Chat {cid} HARD-deleted."
+
+    # chat delete <chat_id>
+    if norm.startswith("chat delete "):
+        rest = norm[len("chat delete "):].strip()
+        if not rest.isdigit():
+            return "Usage: chat delete <chat_id>"
+
+        cid = int(rest)
+        chat = _get_user_chat_or_404(db, user, cid)
+
+        if getattr(chat, "deleted_at", None) is not None:
+            return f"Chat {cid} is already in trash"
+
+        chat.deleted_at = datetime.utcnow()
+        db.commit()
+        return f"Chat {cid} moved to trash."
 
     # chat open <chat_id>
     if norm.startswith("chat open "):
@@ -244,6 +245,32 @@ def router_user_message(chanel_user, text: str, db:Session) -> str:
             for m in msgs:
                 ts = m.created_at.strftime("%Y-%m-%d %H:%M")
                 lines.append(f"[{ts}] {m.role}: {m.content}")
+        return "\n".join(lines)
+
+    # chat list
+    if norm == "chat list":
+        chats = (
+            db.query(Chat)
+            .outerjoin(Project, Chat.project_id == Project.id)
+            .filter(
+                (Project.user_id == user.id) |
+                ((Chat.project_id.is_(None)) & (Chat.user_id == user.id))
+            )
+            .order_by(Chat.id.asc())
+            .all()
+        )
+
+        if not chats:
+            return "No chats found."
+
+        lines = ["Chats:"]
+        for c in chats:
+            if c.project_id:
+                lines.append(f"[{c.id}] {c.title} (project: {c.project_id})")
+            else:
+                lines.append(f"[{c.id}] {c.title} (no project)")
+
+        lines.append(f"Total: {len(chats)}")
         return "\n".join(lines)
 
     # ----------------- Use -----------------
